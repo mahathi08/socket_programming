@@ -1,17 +1,19 @@
 import socket
-HOST = "127.0.0.1"
-PORT = 5000
 
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect((HOST, PORT))
-print("Connected to ON")
+sockfd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+dest_addr = ("127.0.0.1",12345)
 
-message = "A"
-client.send(message.encode())
-print("Sent: A")
+sockfd.connect(dest_addr)
+print("vn(me) connected....")
+    
+msg = "A"
+sockfd.send(msg.encode())
+print("msg sent :",msg)
 
-data = client.recv(1024)
-print("Received LINK-STATE:")
-print(data.decode())
+buf = sockfd.recv(1023)
+if buf:
+    print("received msg :", buf.decode())
 
-client.close()
+sockfd.close()
+
+
