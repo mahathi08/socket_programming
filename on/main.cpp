@@ -12,7 +12,7 @@ using namespace std;
 
 int main(int argc, char *argv[]){
     if(argc!=2){
-        cout<<"use \"./on filename\"\n";
+        cout<<"use \"./main filename\"\n";
         return 1;
     }
     ifstream file(argv[1]);
@@ -41,12 +41,12 @@ int main(int argc, char *argv[]){
         perror("socket error"); 
         return 1;
     }
-    // int opt = 1;
-    // if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
-    //     perror("setsockopt error");
-    //     close(sockfd);
-    //     return 1;
-    // }
+    int opt = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        perror("setsockopt error");
+        close(sockfd);
+        return 1;
+    }
 
     struct sockaddr_in my_addr{};
     my_addr.sin_family = AF_INET;
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]){
         close(sockfd);
         return 1;
     }
-    if(listen(sockfd, 1) < 0){
+    if(listen(sockfd, n) < 0){
         perror("listen error");
         close(sockfd);
         return 1;
@@ -123,7 +123,7 @@ int main(int argc, char *argv[]){
         if(send(vn_sockets[i],msg.c_str(), msg.size(),0)<0){
             perror("send error");
         }
-        else cout<<"sent to vn"<<vn<<" : "<<msg<<"\n";
+        else cout<<"sent to vn("<<vn<<") : "<<msg<<"\n";
         close(vn_sockets[i]);
     }
     close(sockfd);

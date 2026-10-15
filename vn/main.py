@@ -1,25 +1,36 @@
 import socket
 
-sockfd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-dest_addr = ("172.23.32.143",5000)
+on_ip = "172.23.32.143"
+vn_ip = "172.23.32.143"
+vn_udp_port = 5001
+
+udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 try:
-    sockfd.connect(dest_addr)
-    print("vn(me) connected....")
+    udp_sock.bind((vn_ip,vn_udp_port))
+    print("vn udp_sock bound....")
+
+    sockfd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sockfd.connect((on_ip,5000))
+    print("vn connected to on....")
         
-    msg = "10.0.0.1 5001"
+    msg = f"{vn_ip} {vn_udp_port}"
     sockfd.sendall(msg.encode())
-    print("msg sent :",msg)
+    print("after connect info sent :",msg)
 
     buf = sockfd.recv(1023)
     if buf:
-        print("received msg :", buf.decode())
+        neigh=buf.decode()
+        print("neigh info :", neigh)
     else:
         print("connection closed by on")
+
 except OSError as e:
     print("socket error : ", e)
 
 finally:    
-    sockfd.close()
+    if "sockfd" in locals():
+        sockfd.close()
+    udp_sock.close()
 
 
