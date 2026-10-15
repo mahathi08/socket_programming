@@ -12,7 +12,7 @@ using namespace std;
 
 int main(int argc, char *argv[]){
     if(argc!=2){
-        cout<<"use ./on file\n";
+        cout<<"use \"./on filename\"\n";
         return 1;
     }
     ifstream file(argv[1]);
@@ -105,9 +105,25 @@ int main(int argc, char *argv[]){
         vn_sockets[i] = got;
     }
     for(int i=0; i<n; i++){
-        string msg="link_state info";
-        send(vn_sockets[i],msg.c_str(), msg.size(),0);
-        cout<<"link_state sent to vn : "<< char('A'+i) <<"\n";
+        string msg;
+        char vn='A'+i;
+        msg+=vn;
+        msg+="=0";
+        for(int j=0;j<n;j++){
+            if(i==j) continue;
+            int c=0;
+            if(i<j) c=graph[i][j-i-1];
+            else c=graph[j][i-j-1];
+            if(c>0){
+                msg+=",";
+                msg+=char('A'+j);
+                msg+="="+to_string(c);
+            }
+        }
+        if(send(vn_sockets[i],msg.c_str(), msg.size(),0)<0){
+            perror("send error");
+        }
+        else cout<<"sent to vn"<<vn<<" : "<<msg<<"\n";
         close(vn_sockets[i]);
     }
     close(sockfd);
