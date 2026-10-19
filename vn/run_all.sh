@@ -26,6 +26,7 @@ for ((i = 0; i < N; i++)); do
     PORT=$((BASE_PORT + i))
     echo "starting vn $((i + 1)) on UDP port $PORT"
     python3 "$VN_SCRIPT" "$ON_IP" "$PORT" &
+    sleep 1
 done
 
 wait
