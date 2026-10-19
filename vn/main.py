@@ -28,7 +28,7 @@ def encode_lsp(origin, seq, links):
     return bytes(bod)
 
 def decode_lsp(data):
-    if len(data) < 7:
+    if len(data)<7:
         raise ValueError("LSP is too short")
     tmsg, start, seq, cnt = struct.unpack("!ccIB", data[:7])
     if tmsg != b"P" or len(data) != 7+cnt*5:

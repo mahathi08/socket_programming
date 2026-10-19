@@ -14,7 +14,6 @@ fi
 
 ROWS=$(grep -Ec '^[[:space:]]*[^#[:space:]]' "$CONFIG")
 N=$((ROWS + 1))
-
 echo "number of vns: $N"
 
 if [[ ! -f "$VN_SCRIPT" ]]; then
