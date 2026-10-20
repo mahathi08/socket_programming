@@ -28,18 +28,28 @@ def encode_lsp(origin, seq, links):
     return bytes(bod)
 
 def decode_lsp(data):
-    if len(data)<7:
+    if len(data) < 7:
         raise ValueError("LSP is too short")
     tmsg, start, seq, cnt = struct.unpack("!ccIB", data[:7])
-    if tmsg != b"P" or len(data) != 7+cnt*5:
+    if tmsg != b"P" or len(data) != 7 + cnt * 5:
         raise ValueError("Invalid LSP")
+    origin = start.decode()
+    if not ('A' <= origin <= 'Z'):
+        raise ValueError("Invalid LSP origin")
     links = {}
     pos = 7
-    for i in range(cnt):
+    for _ in range(cnt):
         node, cost = struct.unpack("!cI", data[pos:pos + 5])
         pos += 5
-        links[node.decode()] = cost
-    return start.decode(), seq, links
+        node_name = node.decode()
+        if not ('A' <= node_name <= 'Z'):
+            raise ValueError("Invalid node in LSP")
+        if node_name == origin:
+            raise ValueError("LSP must not contain a self-link")
+        if cost == 0 or node_name in links:
+            raise ValueError("Invalid or duplicate link in LSP")
+        links[node_name] = cost
+    return origin, seq, links
 
 
 def parse_ls(bod):
@@ -79,13 +89,18 @@ if len(sys.argv) != 3:
 
 on_ip = sys.argv[1]
 vn_udp_port = int(sys.argv[2])
-vn_ip = "172.23.32.143"
+# vn_ip = "172.23.32.143"
 
 udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 try:
+    probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        probe.connect((on_ip, 5000))
+        vn_ip = probe.getsockname()[0]
+    finally:
+        probe.close()
     udp_sock.bind((vn_ip,vn_udp_port))
-    # print(f"vn({vn_udp_port})udp_sock bound....")
 
     sockfd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sockfd.connect((on_ip,5000))
@@ -97,6 +112,11 @@ try:
     if tmsg != b"L":
         raise ValueError("Unexpected message type")
     vn_name,entries = parse_ls(bod)
+    if not ('A' <= vn_name <= 'Z'):
+        raise ValueError("Invalid VN identity")
+    if len({entry[0] for entry in entries}) != len(entries):
+        raise ValueError("Duplicate node in LINK-STATE")
+
     neighbours = {nod: (ip, port, cost) for nod, ip, port, cost in entries if nod != vn_name}
 
     own_links = {node: info[2] for node, info in neighbours.items()}
@@ -125,6 +145,8 @@ try:
                 if tmsg != b"L":
                     raise ValueError("Unexpected message type")
                 new_name,entries = parse_ls(bod)
+                if len({entry[0] for entry in entries}) != len(entries):
+                    raise ValueError("Duplicate node in LINK-STATE")
                 if new_name != vn_name:
                     raise ValueError("ON changed this VN's identity")
                 new_neighbours = {nod: (ip, port, cost) for nod, ip, port, cost in entries if nod != vn_name}
@@ -135,6 +157,8 @@ try:
                 own_links = new_own_links
                 known_graph[vn_name] = own_links.copy()
                 if topology_changed:
+                    if seq >= 0xFFFFFFFF:
+                        raise OverflowError("LSP sequence number exhausted")
                     seq += 1
                     seen_seq[vn_name] = seq
                     send_ls()
@@ -167,6 +191,8 @@ try:
             
         now = time.monotonic()
         if now - last_sent >= 15:
+            if seq >= 0xFFFFFFFF:
+                raise OverflowError("LSP sequence number exhausted")
             seq += 1
             seen_seq[vn_name] = seq
             known_graph[vn_name] = own_links.copy()
@@ -177,8 +203,10 @@ try:
             print_graph(known_graph, vn_name)
             last_print = now
 
-except (OSError, ConnectionError, ValueError) as exc:
-    print(f"VN error: {exc}", file=sys.stderr)      
+except KeyboardInterrupt:
+    print("\nVN stopped by user")
+except (OSError, ConnectionError, ValueError, OverflowError) as exc:
+    print(f"VN error: {exc}", file=sys.stderr)
 finally:    
     if "sockfd" in locals():
         sockfd.close()
