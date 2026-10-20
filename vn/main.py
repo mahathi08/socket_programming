@@ -123,6 +123,8 @@ try:
     seq = 1
     known_graph = {vn_name: own_links.copy()}
     seen_seq = {vn_name: seq}
+    last_seen = {}
+    LSP_TIMEOUT = 45 
     print(f"VN {vn_name}: initial neighbors = {own_links}")
     
     def send_ls():
@@ -178,6 +180,7 @@ try:
                     continue
                 seen_seq[start] = recv_seq
                 known_graph[start] = links.copy()
+                last_seen[start] = time.monotonic()
 
                 for node, (ip, port, cost) in neighbours.items():
                     if (ip, port) == addr:
@@ -190,6 +193,11 @@ try:
                 print(f"VN {vn_name}: learned LSP from {start}, "f"sequence {recv_seq}")
             
         now = time.monotonic()
+        for node in list(last_seen):
+            if now - last_seen[node] > LSP_TIMEOUT:
+                known_graph.pop(node, None)
+                del last_seen[node]
+                print(f"VN {vn_name}: expired stale LSP from {node}")
         if now - last_sent >= 15:
             if seq >= 0xFFFFFFFF:
                 raise OverflowError("LSP sequence number exhausted")
