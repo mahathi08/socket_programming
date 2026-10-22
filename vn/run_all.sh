@@ -4,7 +4,7 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 
 CONFIG="$ROOT/config.txt"
 VN_SCRIPT="$ROOT/vn/main.py"
-ON_IP="172.23.32.143"
+ON_IP=$(hostname -I | awk '{print $1}')
 BASE_PORT=5001
 
 if [[ ! -f "$CONFIG" ]]; then

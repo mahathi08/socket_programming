@@ -169,7 +169,7 @@ int main(int argc,char *argv[]){
     struct sockaddr_in my_addr{};
     my_addr.sin_family = AF_INET;
     my_addr.sin_port = htons(5000); 
-    my_addr.sin_addr.s_addr = inet_addr("172.23.32.143");
+    my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     
     if(bind(sockfd, (struct sockaddr *)&my_addr, sizeof(my_addr)) < 0){
         perror("bind error");
